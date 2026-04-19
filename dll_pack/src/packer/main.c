@@ -45,6 +45,10 @@ int main(int argc, char* argv[]) {
         PrintUsage(argv[0]);
         return 1;
     }
+    if (appId < 100 || appId > 1000) {
+        printf("Error: Invalid -appid %lu (valid range: 100-1000)\n", appId);
+        return 1;
+    }
 
     printf("PE Packer v2.0\n");
     printf("==============\n\n");
@@ -103,8 +107,8 @@ int main(int argc, char* argv[]) {
         // Use the validation shellcode for x64
         shellcode = CreateShellcode(originalEP64, appId, dllSize, imageBase64, &shellcodeSize);
     } else {
-        // For x86, use simple jump for now
-        shellcode = CreateJumpShellcode32(imageBase32 + originalEP32, &shellcodeSize);
+        // For x86, use validation gate then jump
+        shellcode = CreateJumpShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
     }
 
     if (!shellcode) {
