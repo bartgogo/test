@@ -9,12 +9,13 @@
 
 void PrintUsage(const char* prog) {
     printf("PE Packer v2.0 - Complete Implementation\n\n");
-    printf("Usage: %s -in <input.exe> -out <output.exe> -appid <id> [-dll <validator.dll>]\n\n", prog);
+    printf("Usage: %s -in <input.exe> -out <output.exe> -appid <id> [-dll <validator.dll>] [-loader-mode <full|compat>]\n\n", prog);
     printf("Options:\n");
     printf("  -in <file>     Input executable to pack\n");
     printf("  -out <file>    Output packed executable\n");
     printf("  -appid <num>   Application ID for validation (100-1000 valid)\n");
     printf("  -dll <file>    Validator DLL (default: validator.dll)\n");
+    printf("  -loader-mode   full (default, validation-gate) or compat (jump-only fallback)\n");
     printf("\nThe packed exe will validate before running the original program.\n");
 }
 
@@ -22,6 +23,7 @@ int main(int argc, char* argv[]) {
     char* inputFile = NULL;
     char* outputFile = NULL;
     char* dllFile = "validator.dll";
+    DWORD loaderMode = LOADER_MODE_FULL;
     DWORD appId = 0;
 
     // Parse command line
@@ -34,6 +36,16 @@ int main(int argc, char* argv[]) {
             appId = (DWORD)atoi(argv[++i]);
         } else if (strcmp(argv[i], "-dll") == 0 && i + 1 < argc) {
             dllFile = argv[++i];
+        } else if (strcmp(argv[i], "-loader-mode") == 0 && i + 1 < argc) {
+            const char* mode = argv[++i];
+            if (strcmp(mode, "full") == 0) {
+                loaderMode = LOADER_MODE_FULL;
+            } else if (strcmp(mode, "compat") == 0) {
+                loaderMode = LOADER_MODE_COMPAT;
+            } else {
+                printf("Error: Invalid -loader-mode %s (expected full|compat)\n", mode);
+                return 1;
+            }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             PrintUsage(argv[0]);
             return 0;
@@ -55,6 +67,7 @@ int main(int argc, char* argv[]) {
     printf("Input:    %s\n", inputFile);
     printf("Output:   %s\n", outputFile);
     printf("AppID:    %lu\n", appId);
+    printf("Mode:     %s\n", loaderMode == LOADER_MODE_FULL ? "full" : "compat");
     printf("DLL:      %s\n\n", dllFile);
 
     // Read DLL file
@@ -104,11 +117,17 @@ int main(int argc, char* argv[]) {
     printf("\nGenerating loader shellcode...\n");
 
     if (is64bit) {
-        // Use the validation shellcode for x64
-        shellcode = CreateValidationGateShellcode64(originalEP64, appId, imageBase64, &shellcodeSize);
+        if (loaderMode == LOADER_MODE_FULL) {
+            shellcode = CreateValidationGateShellcode64(originalEP64, appId, imageBase64, &shellcodeSize);
+        } else {
+            shellcode = CreateCompatJumpShellcode64(originalEP64, imageBase64, &shellcodeSize);
+        }
     } else {
-        // For x86, use validation gate shellcode
-        shellcode = CreateValidationGateShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
+        if (loaderMode == LOADER_MODE_FULL) {
+            shellcode = CreateValidationGateShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
+        } else {
+            shellcode = CreateCompatJumpShellcode32(imageBase32 + originalEP32, &shellcodeSize);
+        }
     }
 
     if (!shellcode) {
@@ -169,7 +188,10 @@ int main(int argc, char* argv[]) {
 
     // Setup config
     OVERLAY_CONFIG* config = (OVERLAY_CONFIG*)(overlay + dllSize);
+    memset(config, 0, sizeof(OVERLAY_CONFIG));
     config->magic = OVERLAY_MAGIC;
+    config->version = OVERLAY_VERSION;
+    config->loader_mode = loaderMode;
     config->appid = appId;
     config->dll_size = dllSize;
     config->original_ep_rva = is64bit ? (DWORD)originalEP64 : originalEP32;
@@ -216,6 +238,7 @@ int main(int argc, char* argv[]) {
     printf("  - Overlay appended: DLL + config\n");
     printf("\n");
     printf("Validation info:\n");
+    printf("  - Loader mode: %s\n", loaderMode == LOADER_MODE_FULL ? "full (validation-gate)" : "compat (jump-only)");
     printf("  - AppID: %lu\n", appId);
     printf("  - Valid range: 100-1000\n");
     printf("  - Validator DLL: %s\n", dllFile);

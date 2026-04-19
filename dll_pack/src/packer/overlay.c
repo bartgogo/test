@@ -44,6 +44,8 @@ BYTE* Overlay_Create(DWORD appid, DWORD originalEP, DWORD imageBase,
     OVERLAY_CONFIG* config = (OVERLAY_CONFIG*)(overlay + dllSize);
     memset(config, 0, sizeof(OVERLAY_CONFIG));
     config->magic = OVERLAY_MAGIC;
+    config->version = OVERLAY_VERSION;
+    config->loader_mode = LOADER_MODE_FULL;
     config->appid = appid;
     config->dll_size = dllSize;
     config->original_ep_rva = originalEP;

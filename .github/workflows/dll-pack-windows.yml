@@ -38,7 +38,57 @@ jobs:
           cl /nologo ..\src\test\test_program.c /Fe:test_program.exe
           cl /nologo ..\src\test\check_pe.c /Fe:check_pe.exe
           cl /nologo ..\src\test\check_aslr.c /Fe:check_aslr.exe
-          packer.exe -in test_program.exe -out packed_test.exe -appid 450 -dll validator.dll
-          if not exist packed_test.exe exit /b 1
-          check_pe.exe packed_test.exe
-          check_aslr.exe packed_test.exe
+          cl /nologo ..\src\test\check_pack_consistency.c /Fe:check_pack_consistency.exe
+
+          set TOTAL_CASES=0
+          set PASS_CASES=0
+
+          rem Case 1: full mode
+          set /a TOTAL_CASES+=1
+          packer.exe -in test_program.exe -out packed_test_full.exe -appid 450 -dll validator.dll -loader-mode full || exit /b 1
+          if not exist packed_test_full.exe exit /b 1
+          check_pe.exe packed_test_full.exe || exit /b 1
+          check_aslr.exe packed_test_full.exe || exit /b 1
+          check_pack_consistency.exe test_program.exe packed_test_full.exe 450 1 || exit /b 1
+          set /a PASS_CASES+=1
+
+          rem Case 2: compat mode fallback
+          set /a TOTAL_CASES+=1
+          packer.exe -in test_program.exe -out packed_test_compat.exe -appid 777 -dll validator.dll -loader-mode compat || exit /b 1
+          if not exist packed_test_compat.exe exit /b 1
+          check_pe.exe packed_test_compat.exe || exit /b 1
+          check_aslr.exe packed_test_compat.exe || exit /b 1
+          check_pack_consistency.exe test_program.exe packed_test_compat.exe 777 2 || exit /b 1
+          set /a PASS_CASES+=1
+
+          rem Negative Case A: missing DLL must fail
+          set /a TOTAL_CASES+=1
+          packer.exe -in test_program.exe -out should_fail_missing_dll.exe -appid 450 -dll missing_validator.dll >nul 2>&1
+          if not errorlevel 1 exit /b 1
+          set /a PASS_CASES+=1
+
+          rem Negative Case B: invalid appid must fail
+          set /a TOTAL_CASES+=1
+          packer.exe -in test_program.exe -out should_fail_bad_appid.exe -appid 1 -dll validator.dll >nul 2>&1
+          if not errorlevel 1 exit /b 1
+          set /a PASS_CASES+=1
+
+          rem Negative Case C: broken PE input must fail
+          set /a TOTAL_CASES+=1
+          copy /y test_program.exe broken_test_program.exe >nul
+          powershell -NoProfile -Command "$bytes = [System.IO.File]::ReadAllBytes('broken_test_program.exe'); [System.Array]::Clear($bytes, 0, 2); [System.IO.File]::WriteAllBytes('broken_test_program.exe', $bytes)"
+          packer.exe -in broken_test_program.exe -out should_fail_bad_pe.exe -appid 450 -dll validator.dll >nul 2>&1
+          if not errorlevel 1 exit /b 1
+          set /a PASS_CASES+=1
+
+          echo Cases passed: %PASS_CASES%/%TOTAL_CASES%
+          if not %PASS_CASES%==%TOTAL_CASES% exit /b 1
+
+      - name: Upload build artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dll-pack-windows-failure-artifacts
+          path: |
+            dll_pack/build/*.exe
+            dll_pack/build/*.dll

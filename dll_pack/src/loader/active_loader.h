@@ -84,4 +84,36 @@ static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD
     return sc;
 }
 
+// x64 compatibility fallback shellcode (no validation).
+static unsigned char* CreateCompatJumpShellcode64(
+    ULONGLONG originalEP,
+    ULONGLONG imageBase,
+    size_t* outSize
+) {
+    *outSize = 12;
+    unsigned char* sc = (unsigned char*)malloc(*outSize);
+    if (!sc) return NULL;
+
+    ULONGLONG targetAddr = originalEP + imageBase;
+    sc[0] = 0x48;
+    sc[1] = 0xB8; // mov rax, imm64
+    *(ULONGLONG*)(sc + 2) = targetAddr;
+    sc[10] = 0xFF; // jmp rax
+    sc[11] = 0xE0;
+    return sc;
+}
+
+// x86 compatibility fallback shellcode (no validation).
+static unsigned char* CreateCompatJumpShellcode32(DWORD targetAddress, size_t* outSize) {
+    *outSize = 7;
+    unsigned char* sc = (unsigned char*)malloc(*outSize);
+    if (!sc) return NULL;
+
+    sc[0] = 0xB8; // mov eax, imm32
+    *(DWORD*)(sc + 1) = targetAddress;
+    sc[5] = 0xFF; // jmp eax
+    sc[6] = 0xE0;
+    return sc;
+}
+
 #endif // ACTIVE_LOADER_H
