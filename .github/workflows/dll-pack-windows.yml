@@ -21,33 +21,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup MSVC dev environment
-        uses: ilammy/msvc-dev-cmd@v1
-
-      - name: Build validator and packer
+      - name: Build and smoke test on Windows
         shell: cmd
         run: |
+          set VSDEVCMD=
+          for %%E in (Enterprise Professional Community BuildTools) do (
+            if exist "C:\Program Files\Microsoft Visual Studio\2022\%%E\Common7\Tools\VsDevCmd.bat" (
+              set VSDEVCMD=C:\Program Files\Microsoft Visual Studio\2022\%%E\Common7\Tools\VsDevCmd.bat
+            )
+          )
+          if "%VSDEVCMD%"=="" exit /b 1
+          call "%VSDEVCMD%" -arch=x64
           cd /d dll_pack
           build.bat
-
-      - name: Build test utilities
-        shell: cmd
-        run: |
           cd /d dll_pack\build
           cl /nologo ..\src\test\test_program.c /Fe:test_program.exe
           cl /nologo ..\src\test\check_pe.c /Fe:check_pe.exe
           cl /nologo ..\src\test\check_aslr.c /Fe:check_aslr.exe
-
-      - name: Pack sample program
-        shell: cmd
-        run: |
-          cd /d dll_pack\build
           packer.exe -in test_program.exe -out packed_test.exe -appid 450 -dll validator.dll
-
-      - name: Validate packed artifact structure
-        shell: cmd
-        run: |
-          cd /d dll_pack\build
           if not exist packed_test.exe exit /b 1
           check_pe.exe packed_test.exe
           check_aslr.exe packed_test.exe
