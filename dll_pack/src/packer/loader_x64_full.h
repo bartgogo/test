@@ -13,11 +13,9 @@
 static unsigned char* CreateShellcode(
     ULONGLONG originalEP,
     DWORD appid,
-    DWORD dllSize,
     ULONGLONG imageBase,
     size_t* outSize
 ) {
-    (void)dllSize;
     *outSize = 33;
     unsigned char* sc = (unsigned char*)malloc(*outSize);
     if (!sc) return NULL;
@@ -46,9 +44,9 @@ static unsigned char* CreateShellcode(
     // jmp rax
     sc[29] = 0xFF;
     sc[30] = 0xE0;
-    // fail: infinite loop
-    sc[31] = 0xEB;
-    sc[32] = 0xFE;
+    // fail: ud2 (invalid opcode, terminate execution path)
+    sc[31] = 0x0F;
+    sc[32] = 0x0B;
 
     return sc;
 }
@@ -73,8 +71,8 @@ static unsigned char* CreateJumpShellcode32(DWORD targetAddress, DWORD appid, si
     *(DWORD*)(sc + 20) = targetAddress;
     sc[24] = 0xFF;                      // jmp eax
     sc[25] = 0xE0;
-    sc[26] = 0xEB;                      // fail
-    sc[27] = 0xFE;
+    sc[26] = 0x0F;                      // fail: ud2
+    sc[27] = 0x0B;
 
     return sc;
 }

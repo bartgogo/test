@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
 
     if (is64bit) {
         // Use the validation shellcode for x64
-        shellcode = CreateShellcode(originalEP64, appId, dllSize, imageBase64, &shellcodeSize);
+        shellcode = CreateShellcode(originalEP64, appId, imageBase64, &shellcodeSize);
     } else {
         // For x86, use validation gate then jump
         shellcode = CreateJumpShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
