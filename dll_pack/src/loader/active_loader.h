@@ -1,16 +1,16 @@
-// Simple x64 Shellcode - Jump only
-// This is the simplest possible loader that just jumps to the original EP
+// Active runtime loader stubs used by packer.
+// Runtime chain: stub -> AppID policy validate -> original EP.
 
-#ifndef X64_LOADER_FULL_H
-#define X64_LOADER_FULL_H
+#ifndef ACTIVE_LOADER_H
+#define ACTIVE_LOADER_H
 
 #include <windows.h>
 #include <stdlib.h>
 #include <string.h>
 
-// Simple x64 shellcode: mov rax, addr; jmp rax
-// Size: 33 bytes
-static unsigned char* CreateShellcode(
+// x64 validation-gate shellcode
+// Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
+static unsigned char* CreateValidationGateShellcode64(
     ULONGLONG originalEP,
     DWORD appid,
     ULONGLONG imageBase,
@@ -51,8 +51,9 @@ static unsigned char* CreateShellcode(
     return sc;
 }
 
-// Simple jump shellcode for x86
-static unsigned char* CreateJumpShellcode32(DWORD targetAddress, DWORD appid, size_t* outSize) {
+// x86 validation-gate shellcode
+// Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
+static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD appid, size_t* outSize) {
     *outSize = 28;
     unsigned char* sc = (unsigned char*)malloc(*outSize);
     if (!sc) return NULL;
@@ -77,4 +78,4 @@ static unsigned char* CreateJumpShellcode32(DWORD targetAddress, DWORD appid, si
     return sc;
 }
 
-#endif // X64_LOADER_FULL_H
+#endif // ACTIVE_LOADER_H

@@ -5,7 +5,7 @@
 
 #include "pe_parser.h"
 #include "overlay.h"
-#include "loader_x64_full.h"
+#include "../loader/active_loader.h"
 
 void PrintUsage(const char* prog) {
     printf("PE Packer v2.0 - Complete Implementation\n\n");
@@ -105,10 +105,10 @@ int main(int argc, char* argv[]) {
 
     if (is64bit) {
         // Use the validation shellcode for x64
-        shellcode = CreateShellcode(originalEP64, appId, imageBase64, &shellcodeSize);
+        shellcode = CreateValidationGateShellcode64(originalEP64, appId, imageBase64, &shellcodeSize);
     } else {
         // For x86, use validation gate then jump
-        shellcode = CreateJumpShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
+        shellcode = CreateValidationGateShellcode32(imageBase32 + originalEP32, appId, &shellcodeSize);
     }
 
     if (!shellcode) {
