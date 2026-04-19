@@ -1,0 +1,50 @@
+name: dll_pack Windows CI
+
+on:
+  push:
+    paths:
+      - 'dll_pack/**'
+      - '.github/workflows/dll-pack-windows.yml'
+  pull_request:
+    paths:
+      - 'dll_pack/**'
+      - '.github/workflows/dll-pack-windows.yml'
+
+jobs:
+  build-and-smoke-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSVC dev environment
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build validator and packer
+        shell: cmd
+        run: |
+          cd /d dll_pack
+          build.bat
+
+      - name: Build test utilities
+        shell: cmd
+        run: |
+          cd /d dll_pack\build
+          cl /nologo ..\src\test\test_program.c /Fe:test_program.exe
+          cl /nologo ..\src\test\check_pe.c /Fe:check_pe.exe
+          cl /nologo ..\src\test\check_aslr.c /Fe:check_aslr.exe
+
+      - name: Pack sample program
+        shell: cmd
+        run: |
+          cd /d dll_pack\build
+          packer.exe -in test_program.exe -out packed_test.exe -appid 450 -dll validator.dll
+
+      - name: Validate packed artifact structure
+        shell: cmd
+        run: |
+          cd /d dll_pack\build
+          if not exist packed_test.exe exit /b 1
+          check_pe.exe packed_test.exe
+          check_aslr.exe packed_test.exe
