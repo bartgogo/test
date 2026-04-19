@@ -10,6 +10,9 @@ on:
       - 'dll_pack/**'
       - '.github/workflows/dll-pack-windows.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build-and-smoke-test:
     runs-on: windows-latest
