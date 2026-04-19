@@ -12,7 +12,7 @@
 // Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
 static unsigned char* CreateValidationGateShellcode64(
     ULONGLONG originalEP,
-    DWORD appid,
+    DWORD appId,
     ULONGLONG imageBase,
     size_t* outSize
 ) {
@@ -24,7 +24,7 @@ static unsigned char* CreateValidationGateShellcode64(
 
     // mov eax, appid
     sc[0] = 0xB8;
-    *(DWORD*)(sc + 1) = appid;
+    *(DWORD*)(sc + 1) = appId;
     // cmp eax, 100
     sc[5] = 0x3D;
     *(DWORD*)(sc + 6) = 100;
@@ -53,13 +53,13 @@ static unsigned char* CreateValidationGateShellcode64(
 
 // x86 validation-gate shellcode
 // Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
-static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD appid, size_t* outSize) {
+static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD appId, size_t* outSize) {
     *outSize = 28;
     unsigned char* sc = (unsigned char*)malloc(*outSize);
     if (!sc) return NULL;
 
     sc[0] = 0xB8;                       // mov eax, appid
-    *(DWORD*)(sc + 1) = appid;
+    *(DWORD*)(sc + 1) = appId;
     sc[5] = 0x3D;                       // cmp eax, 100
     *(DWORD*)(sc + 6) = 100;
     sc[10] = 0x72;                      // jb fail
