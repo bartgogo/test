@@ -8,8 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-// x64 validation-gate shellcode
-// Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
+// x64 validation-gate shellcode generator.
+// Shellcode layout is immediate-instruction based: appId compare range check,
+// then absolute jump to OEP. Runtime behavior is strict:
+// - appId in [100,1000] => jump to original entry point
+// - otherwise => execute ud2 and terminate current execution path
 static unsigned char* CreateValidationGateShellcode64(
     ULONGLONG originalEP,
     DWORD appId,
@@ -51,8 +54,11 @@ static unsigned char* CreateValidationGateShellcode64(
     return sc;
 }
 
-// x86 validation-gate shellcode
-// Behavior: validate appid in [100,1000], pass->jmp OEP, fail->ud2.
+// x86 validation-gate shellcode generator.
+// Shellcode layout is immediate-instruction based: appId compare range check,
+// then jump to OEP via EAX. Runtime behavior is strict:
+// - appId in [100,1000] => jump to original entry point
+// - otherwise => execute ud2 and terminate current execution path
 static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD appId, size_t* outSize) {
     *outSize = 28;
     unsigned char* sc = (unsigned char*)malloc(*outSize);
