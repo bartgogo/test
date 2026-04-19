@@ -25,7 +25,7 @@ typedef struct {
     DWORD dll_size;         // Size of embedded DLL
     DWORD original_ep_rva;  // Original entry point RVA
     DWORD image_base;       // Image base
-    DWORD reserved;         // Reserved for future feature flags
+    DWORD future_flags;     // Future runtime feature flags
 } OVERLAY_CONFIG;
 #pragma pack(pop)
 
