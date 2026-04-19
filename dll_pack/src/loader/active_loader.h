@@ -47,7 +47,7 @@ static unsigned char* CreateValidationGateShellcode64(
     // jmp rax
     sc[29] = 0xFF;
     sc[30] = 0xE0;
-    // fail: ud2 (invalid opcode -> raises illegal-instruction exception, typically terminating process)
+    // fail: ud2 (invalid opcode -> raises undefined-instruction exception, typically terminating process)
     sc[31] = 0x0F;
     sc[32] = 0x0B;
 
@@ -78,7 +78,7 @@ static unsigned char* CreateValidationGateShellcode32(DWORD targetAddress, DWORD
     *(DWORD*)(sc + 20) = targetAddress;
     sc[24] = 0xFF;                      // jmp eax
     sc[25] = 0xE0;
-    sc[26] = 0x0F;                      // fail: ud2 (illegal instruction, process typically terminates)
+    sc[26] = 0x0F;                      // fail: ud2 (undefined instruction, process typically terminates)
     sc[27] = 0x0B;
 
     return sc;
