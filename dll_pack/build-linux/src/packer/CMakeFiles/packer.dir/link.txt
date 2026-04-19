@@ -1,0 +1,1 @@
+/usr/bin/cc -Wl,--dependency-file=CMakeFiles/packer.dir/link.d CMakeFiles/packer.dir/main.c.o CMakeFiles/packer.dir/pe_parser.c.o CMakeFiles/packer.dir/overlay.c.o -o packer
